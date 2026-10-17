@@ -69,10 +69,21 @@
                 <h2>Reserva tu <em>momento.</em></h2>
                 <p>Una reservación por persona. Completa tus datos, selecciona tus platos y bebidas y envía tu
                     solicitud.</p>
-                <div class="reserve-note">La solicitud no garantiza disponibilidad hasta que el restaurante la confirme.
+                <div class="reserve-note">Tu solicitud se registrará directamente en Netlify y quedará pendiente de confirmación por el restaurante.
                 </div>
             </div>
-            <form id="reservationForm" class="reservation-form">
+            <form id="reservationForm" class="reservation-form"
+                  name="taiguey-reservaciones" method="POST"
+                  action="/solicitud-recibida.html"
+                  data-netlify="true" netlify-honeypot="bot-field">
+                <input type="hidden" name="form-name" value="taiguey-reservaciones">
+                <input type="hidden" name="solicitud_id" value="">
+                <input type="hidden" name="detalle_productos" value="">
+                <input type="hidden" name="subtotal_estimado" value="">
+                <input type="hidden" name="estado" value="Pendiente">
+                <p aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">
+                    <label>No completar este campo <input type="text" name="bot-field" tabindex="-1" autocomplete="off"></label>
+                </p>
                 <div class="form-heading">
                     <h3>Tus datos</h3><span>01 / 03</span>
                 </div>
@@ -92,8 +103,8 @@
                     <p class="empty">Aún no has seleccionado productos. Explora nuestra carta.</p>
                 </div><a class="text-link" href="#carta">+ Agregar platos o bebidas</a>
                 <div class="totals"><span>Subtotal estimado</span><strong id="subtotal">RD$0</strong></div>
-                <p class="fineprint">El subtotal no incluye impuestos ni cargos adicionales. No se realiza ningún pago
-                    en esta web.</p>
+                <p class="fineprint">El subtotal es orientativo y se verificará con el restaurante. No incluye impuestos ni cargos
+                    adicionales. No se realiza ningún pago en esta web.</p>
                 <div class="form-heading second">
                     <h3>Confirmación</h3><span>03 / 03</span>
                 </div><label class="full-label">Observaciones (opcional)<textarea name="observaciones" rows="3"
