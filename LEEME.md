@@ -1,52 +1,41 @@
-# TAIGÜEY SIGNATURE EXPERIENCE — VERSIÓN CORREGIDA
+# Taigüey Signature Experience
 
-Esta entrega mantiene la web con imágenes ilustrativas y corrige la conexión del formulario a Google Sheets. El mensaje **«¡Formulario enviado correctamente!»** aparece **solo** cuando Google Apps Script responde que ha escrito la solicitud en la hoja.
+Sitio HTML/CSS/JS con reservas individuales. La web registra una **solicitud pendiente**, que el restaurante debe confirmar. No realiza cobros.
 
-## Archivos
+## Arquitectura
 
-- `index.html`: página del restaurante, formulario individual y mensaje en `#formStatus`.
-- `style.css`: estilos, fotografías de referencia y mensajes de éxito/error.
-- `catalogo.js`: **solo 12 productos iniciales**, NO la carta completa; nombres/precios por verificar.
-- `script.js`: catálogo, carrito, validaciones, envío a Netlify y confirmaciones visibles.
-- `Codigo.gs`: copiar manualmente al proyecto de Apps Script vinculado a Sheets.
-- `netlify/functions/reservar.js`: función para conectar con Apps Script.
-- `netlify.toml`: configuración de Netlify cuando el proyecto está en la raíz.
+Web \`script.js\` → \`/.netlify/functions/reservar\` → Google Apps Script \`Codigo.gs\` → Google Sheets.
 
-## 1. Sustituir código de Google Apps Script
+- Google Sheets: https://docs.google.com/spreadsheets/d/1UyQOpmnroQjD2j-QpHpiWl6MwizU_SZjz_L6nU_ZZpI/edit
+- Pestaña **Reservaciones**: conserva sus 17 encabezados existentes.
+- Pestaña **Productos**: el script la crea al registrar la primera solicitud, si no existe. Almacena el detalle de platos y bebidas por código.
+- El precio lo calcula **Apps Script** con los mismos IDs y precios definidos en \`catalogo.js\` (12 productos de ejemplo, NO carta completa verificada).
+- Una solicitud es para **una persona** y se aplica el límite configurado de **30 solicitudes por hora**.
+- El estado queda **Pendiente** hasta una confirmación manual del restaurante.
+- El mismo \`solicitudId\` sirve para reintentar sin duplicar; si el usuario modifica la selección se genera otro ID.
 
-1. Abrir la **versión nativa de Google Sheets** de Taigüey. Si es un Excel `.xlsx`, convertirlo primero a Google Sheets.
-2. En **Extensiones → Apps Script**, reemplazar todo el contenido de `Código.gs` por el código contenido en este paquete en `Codigo.gs`.
-3. Guardar. Hacer clic en **Implementar → Administrar implementaciones → Editar**; seleccionar **Nueva versión** y **Implementar**.
-4. En el despliegue web, ejecutar como **Yo** y permitir acceso de **Cualquier persona**. Autorizar la conexión a Sheets si Google lo solicita.
-5. Abrir la URL `/exec` en el navegador. Ahora devuelve un JSON con `ok:true` y `servicio: Reservaciones Taigüey` para comprobar que se publicó la versión nueva. Esto NO constituye una reservación.
+## Pasos para ponerlo en producción
 
-Si no existe una implementación anterior, usar **Implementar → Nueva implementación → Aplicación web**. Copiar la nueva URL `/exec`.
+1. Abre Apps Script y **sustituye su \`Código.gs\` por el archivo \`Codigo.gs\` de este repositorio**. El archivo de GitHub NO se ejecuta en Google Apps Script automáticamente.
+2. Guarda y ve a **Implementar → Administrar implementaciones → Editar → Nueva versión → Implementar**. Ejecuta como **Yo** y permite acceso a **Cualquier persona**.
+3. Abre la URL \`/exec\` del despliegue de Apps Script. Debe devolver JSON con \`"ok":true\` y \`"esquema":"taiguey-v2-17-col"\`. Si no, revisar permisos, ID y encabezados.
+4. En Netlify, en **Environment variables**, comprueba que \`APPS_SCRIPT_URL\` tenga la URL \`/exec\` vigente y esté disponible para Functions en Production.
+5. Publica el último commit de \`main\` en Netlify. \`netlify.toml\` configura \`publish = "."\` y \`functions = "netlify/functions"\`.
+6. Abre \`https://TU-SITIO.netlify.app/.netlify/functions/reservar\` en el navegador. Debe mostrar JSON \`"ok":true\` y \`"etapa":"completa"\`. Esta prueba GET **no añade filas**.
+7. Haz **una** solicitud de prueba desde la web; comprueba el código \`TG-...\` en la pestaña Reservaciones y sus productos en Productos. Si el formulario indica error, consulta Sheets antes de repetir el envío.
 
-## 2. Configurar Netlify (plan gratuito)
+## Seguridad opcional recomendada antes de abrir al público
 
-1. En **Project configuration → Environment variables**, comprobar que `APPS_SCRIPT_URL` contiene exactamente la URL de la implementación `/exec` actualizada.
-2. Asegurarse de que `APPS_SCRIPT_URL` esté disponible en **Functions** y en **Production**.
-3. Subir a GitHub los archivos descomprimidos manteniendo la carpeta `netlify/functions`. No subir únicamente el ZIP a GitHub.
-4. Comprobar que `index.html` y `netlify.toml` están en la raíz del repositorio. En Netlify: **Publish directory** `.`, **Functions directory** `netlify/functions`, **Build command** vacío.
-5. Desplegar de nuevo Netlify después de cambiar código o variables de entorno.
-6. Abrir `https://taiguey.netlify.app/.netlify/functions/reservar` en el navegador. Debe responder con **405 Método no permitido** (porque necesita POST). Si aparece **404**, Netlify no ha publicado la función: revisar ruta, carpeta y último despliegue.
+Define una propiedad de script **TAIGUEY_API_KEY** en Apps Script y la misma variable de entorno **TAIGUEY_API_KEY** en Netlify (disponible para Functions). Usa un secreto largo y aleatorio. Nunca lo coloques en el HTML, \`script.js\` o GitHub. Si lo defines solo en Apps Script o solo en Netlify, la protección no funcionará correctamente.
 
-## 3. Prueba completa
+Aún faltan controles adicionales antes de producción pública: protección anti-spam/rate limits, datos personales, políticas de privacidad y verificación de los nombres/precios de los productos. Los precios y las imágenes actuales son ilustrativos/referenciales.
 
-1. Ir a `https://taiguey.netlify.app/` con la nueva versión.
-2. Seleccionar productos y rellenar los datos de una única persona con una fecha futura.
-3. Pulsar «Enviar solicitud de reservación».
-4. Si el servidor confirmó el registro, aparecerá el mensaje **«¡Formulario enviado correctamente!»**, con un código `TG-...` y estado **Pendiente**.
-5. Buscar ese código en las pestañas `Reservaciones` y `Productos` del documento de Google Sheets vinculado al script.
+## Diagnósticos
 
-Si hay error, aparecerá en rojo y el formulario NO se borrará. Revisar **F12 → Network → reservar → Response**; también **Netlify → Logs → Functions** y **Apps Script → Ejecuciones**.
+- Si GET en la función de Netlify devuelve **503 / apps_script**, falta publicar la nueva versión de \`Codigo.gs\` o esta no pudo acceder a Sheets.
+- Si devuelve **503 / netlify**, revisar \`APPS_SCRIPT_URL\`.
+- Si devuelve **404**, la función no está desplegada en Netlify.
+- Si devuelve **502**, revisar Netlify → Logs → Functions y Apps Script → Ejecuciones.
+- El enlace \`/exec\` antiguo puede seguir activo; la precomprobación de versión evita que escriba en columnas equivocadas.
 
-## Consideraciones importantes
-
-- **No se comprueba la disponibilidad de mesas ni se confirma una reserva de forma automática.** Solo se registra una solicitud con estado «Pendiente».
-- No se realiza ningún cobro en la web y el subtotal no incluye impuestos ni cargos.
-- Los precios de `catalogo.js` deben estar sincronizados con el objeto `PRECIOS` de `Codigo.gs`, que recalcula los importes sin confiar en el navegador.
-- La protección por ID de solicitud evita duplicados cuando se reintenta el mismo envío tras un error de red; no garantiza transacciones atómicas entre las dos pestañas si Google Sheets falla a mitad de escritura.
-- Antes de usar la web públicamente: completar/verificar la carta, añadir protección contra spam, política de privacidad, controles de cupos, notificaciones, y revisar el tratamiento de datos personales.
-- Las imágenes provienen de Unsplash y son ilustrativas, NO fotografías verificadas de Taigüey. Reemplazarlas por fotos autorizadas, preferiblemente almacenadas en `/assets/images/`.
-- Netlify Functions no funcionan ejecutando `index.html` solo con Live Server; probar el guardado desde Netlify.
+Nunca borrar ni reconstruir la pestaña Reservaciones para resolver errores de conexión.

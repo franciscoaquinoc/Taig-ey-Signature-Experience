@@ -24,6 +24,7 @@ const fotosPorCategoria = {
 const categorias = ['Todos', ...new Set(catalogo.map(p => p.categoria))];
 let categoriaActual = 'Todos';
 let solicitudPendienteId = null;
+let solicitudPendienteFirma = null;
 let enviando = false;
 
 function aviso(tipo, titulo, mensaje = '') {
@@ -204,11 +205,8 @@ async function enviarReservacion(evento) {
     return;
   }
 
-  // Se conserva este identificador si el cliente reintenta tras perder la conexión.
-  if (!solicitudPendienteId) solicitudPendienteId = nuevoIdSolicitud();
-
-  const payload = {
-    solicitudId: solicitudPendienteId,
+  // Un reintento de la MISMA reserva conserva el ID. Si se edita, se renueva.
+  const datosEnvio = {
     nombre: String(datos.get('nombre') || '').trim(),
     apellido: String(datos.get('apellido') || '').trim(),
     telefono: String(datos.get('telefono') || '').trim(),
@@ -218,6 +216,12 @@ async function enviarReservacion(evento) {
     observaciones: String(datos.get('observaciones') || '').trim(),
     items: lineas.map(([id, cantidad]) => ({ id, cantidad }))
   };
+  const firmaActual = JSON.stringify(datosEnvio);
+  if (!solicitudPendienteId || solicitudPendienteFirma !== firmaActual) {
+    solicitudPendienteId = nuevoIdSolicitud();
+    solicitudPendienteFirma = firmaActual;
+  }
+  const payload = { solicitudId: solicitudPendienteId, ...datosEnvio };
 
   enviando = true;
   boton.disabled = true;
@@ -244,15 +248,19 @@ async function enviarReservacion(evento) {
       throw new Error(resultado.error || 'No fue posible guardar tu solicitud.');
     }
 
-    // Solo se muestra éxito cuando Google Apps Script confirma el registro.
-    aviso('success', '¡Formulario enviado correctamente!',
-      'Código: ' + resultado.codigo + '. Recibimos tu solicitud en Taigüey. ' +
-      'La reservación está pendiente de confirmación por el restaurante.');
+    // Apps Script confirma el registro; el restaurante confirma la reserva después.
+    const estadoTexto = resultado.estado === 'Confirmada'
+      ? 'El restaurante confirmó esta reservación.'
+      : 'La solicitud está pendiente de confirmación por el restaurante.';
+    aviso('success', '¡Solicitud registrada correctamente!',
+      'Código: ' + resultado.codigo + '. Subtotal: ' + dinero(resultado.total) + '. ' +
+      estadoTexto);
 
     formulario.reset();
     carrito.clear();
     renderCarrito();
     solicitudPendienteId = null;
+    solicitudPendienteFirma = null;
     $('#fecha').min = hoyDominicano();
   } catch (error) {
     aviso('error', 'No se pudo registrar la reservación',
