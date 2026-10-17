@@ -71,9 +71,11 @@ exports.handler = async event => {
     // La confirmación procede exclusivamente del Apps Script que escribe en Sheets.
     return json(200, {
       ok: true,
+      success: true,
       codigo: resultado.codigo,
-      total: resultado.total,
-      estado: 'Pendiente'
+      total: resultado.total ?? datos.total ?? datos.precioTotal ?? 0,
+      estado: 'Confirmada',
+      mensaje: 'Reservación registrada correctamente.'
     });
   } catch (error) {
     console.error('Error al conectar con Apps Script:', error);
