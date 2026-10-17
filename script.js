@@ -266,9 +266,9 @@ async function enviarReservacion(evento) {
       throw new Error('Netlify respondió con HTTP ' + respuesta.status +
         '. Comprueba si el formulario aparece en Netlify Forms.');
     }
-    aviso('success', 'Solicitud enviada al servidor',
-      'El servidor respondió correctamente. Comprueba la recepción en Netlify Forms. ' +
-      'La reservación está pendiente de confirmación por el restaurante.');
+    aviso('success', 'Solicitud enviada correctamente',
+      'Tu solicitud de reservación fue enviada correctamente. ' +
+      'Está pendiente de confirmación por el restaurante.');
     formulario.reset();
     carrito.clear();
     renderCarrito();
