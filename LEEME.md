@@ -41,3 +41,7 @@ Si posteriormente necesitas inventario de mesas, pagos, roles de empleados, audi
 5. Revisa la documentación: https://docs.netlify.com/manage/forms/setup/
 
 **Seguridad y privacidad:** limita el acceso a las solicitudes, revisa la política de privacidad y configura notificaciones únicamente a direcciones autorizadas.
+
+## Corregir 404 al enviar
+
+El formulario envía su contenido por POST URL-encoded a la ruta principal `/` mediante JavaScript, evitando redirigir a la página de confirmación `/solicitud-recibida.html` que podía devolver un 404. La recepción **solo se confirma** comprobando la nueva solicitud en **Netlify → Forms → taiguey-reservaciones → Submissions**. Es obligatorio desplegar el HTML después de activar Form detection; la activación no es retroactiva. Si el formulario no aparece en Forms, no seguir haciendo envíos.

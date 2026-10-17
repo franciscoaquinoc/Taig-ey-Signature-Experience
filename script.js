@@ -188,7 +188,7 @@ function horaRD() {
   }).format(new Date());
 }
 
-function enviarReservacion(evento) {
+async function enviarReservacion(evento) {
   evento.preventDefault();
   if (enviando) return;
 
@@ -247,14 +247,43 @@ function enviarReservacion(evento) {
   formulario.elements.namedItem('subtotal_estimado').value = 'RD$' + subtotal;
   formulario.elements.namedItem('estado').value = 'Pendiente';
 
-  // Envío nativo: Netlify procesa el POST y redirige al destino configurado
-  // solo al aceptar el formulario. No utilizamos el Apps Script defectuoso.
+  // Enviar Netlify Forms como application/x-www-form-urlencoded a una ruta
+  // existente. La respuesta se muestra aquí, sin redirecciones a una página 404.
   enviando = true;
   boton.disabled = true;
   boton.textContent = 'Enviando solicitud…';
   aviso('loading', 'Enviando tu solicitud…',
-    'Cuando Netlify la reciba, verás la página de solicitud recibida.');
-  formulario.submit();
+    'Estamos enviando la información de tu reservación.');
+  try {
+    const cuerpo = new URLSearchParams(new FormData(formulario)).toString();
+    const respuesta = await fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: cuerpo,
+      redirect: 'follow'
+    });
+    if (!respuesta.ok) {
+      throw new Error('Netlify respondió con HTTP ' + respuesta.status +
+        '. Comprueba si el formulario aparece en Netlify Forms.');
+    }
+    aviso('success', 'Solicitud enviada al servidor',
+      'El servidor respondió correctamente. Comprueba la recepción en Netlify Forms. ' +
+      'La reservación está pendiente de confirmación por el restaurante.');
+    formulario.reset();
+    carrito.clear();
+    renderCarrito();
+    solicitudPendienteId = null;
+    solicitudPendienteFirma = null;
+    $('#fecha').min = hoyDominicano();
+  } catch (error) {
+    aviso('error', 'No se pudo verificar el envío',
+      (error && error.message ? error.message : 'Error de conexión.') +
+      ' No repitas el envío antes de revisar Netlify Forms.');
+  } finally {
+    enviando = false;
+    boton.disabled = false;
+    boton.textContent = 'Enviar solicitud de reservación ↗';
+  }
 }
 
 $('#navToggle').addEventListener('click', () => {
